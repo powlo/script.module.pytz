@@ -31,23 +31,26 @@ Almost all of the Olson timezones are supported.
 Installation
 ~~~~~~~~~~~~
 
-This package can either be installed from a .egg file using setuptools,
-or from the tarball using the standard Python distutils.
+This package can either be installed using ``pip`` or from a tarball using the
+standard Python distutils.
+
+If you are installing using ``pip``, you don't need to download anything as the
+latest version will be downloaded for you from PyPI::
+
+    pip install pytz
 
 If you are installing from a tarball, run the following command as an
 administrative user::
 
     python setup.py install
 
-If you are installing using setuptools, you don't even need to download
-anything as the latest version will be downloaded for you
-from the Python package index::
 
-    easy_install --upgrade pytz
+pytz for Enterprise
+~~~~~~~~~~~~~~~~~~~
 
-If you already have the .egg file, you can use that too::
+Available as part of the Tidelift Subscription.
 
-    easy_install pytz-2008g-py2.6.egg
+The maintainers of pytz and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. `Learn more. <https://tidelift.com/subscription/pkg/pypi-pytz?utm_source=pypi-pytz&utm_medium=referral&utm_campaign=enterprise&utm_term=repo>`_.
 
 
 Example & Usage
@@ -87,13 +90,13 @@ localized time using the standard ``astimezone()`` method:
 Unfortunately using the tzinfo argument of the standard datetime
 constructors ''does not work'' with pytz for many timezones.
 
->>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=amsterdam).strftime(fmt)
-'2002-10-27 12:00:00 AMT+0020'
+>>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=amsterdam).strftime(fmt)  # /!\ Does not work this way!
+'2002-10-27 12:00:00 LMT+0020'
 
 It is safe for timezones without daylight saving transitions though, such
 as UTC:
 
->>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=pytz.utc).strftime(fmt)
+>>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=pytz.utc).strftime(fmt)  # /!\ Not recommended except for UTC
 '2002-10-27 12:00:00 UTC+0000'
 
 The preferred way of dealing with times is to always work in UTC,
@@ -134,19 +137,21 @@ section for more details)
 >>> dt2.strftime(fmt)
 '2002-10-27 01:30:00 EST-0500'
 
-Converting between timezones also needs special attention. We also need
-to use the ``normalize()`` method to ensure the conversion is correct.
+Converting between timezones is more easily done, using the
+standard astimezone method.
 
 >>> utc_dt = utc.localize(datetime.utcfromtimestamp(1143408899))
 >>> utc_dt.strftime(fmt)
 '2006-03-26 21:34:59 UTC+0000'
 >>> au_tz = timezone('Australia/Sydney')
->>> au_dt = au_tz.normalize(utc_dt.astimezone(au_tz))
+>>> au_dt = utc_dt.astimezone(au_tz)
 >>> au_dt.strftime(fmt)
-'2006-03-27 08:34:59 EST+1100'
->>> utc_dt2 = utc.normalize(au_dt.astimezone(utc))
+'2006-03-27 08:34:59 AEDT+1100'
+>>> utc_dt2 = au_dt.astimezone(utc)
 >>> utc_dt2.strftime(fmt)
 '2006-03-26 21:34:59 UTC+0000'
+>>> utc_dt == utc_dt2
+True
 
 You can take shortcuts when dealing with the UTC side of timezone
 conversions. ``normalize()`` and ``localize()`` are not really
@@ -159,7 +164,7 @@ deal with.
 >>> au_tz = timezone('Australia/Sydney')
 >>> au_dt = au_tz.normalize(utc_dt.astimezone(au_tz))
 >>> au_dt.strftime(fmt)
-'2006-03-27 08:34:59 EST+1100'
+'2006-03-27 08:34:59 AEDT+1100'
 >>> utc_dt2 = au_dt.astimezone(utc)
 >>> utc_dt2.strftime(fmt)
 '2006-03-26 21:34:59 UTC+0000'
@@ -178,31 +183,31 @@ parameter to the ``utcoffset()``, ``dst()`` && ``tzname()`` methods.
 >>> ambiguous = datetime(2009, 10, 31, 23, 30)
 
 The ``is_dst`` parameter is ignored for most timestamps. It is only used
-during DST transition ambiguous periods to resulve that ambiguity.
+during DST transition ambiguous periods to resolve that ambiguity.
 
->>> tz.utcoffset(normal, is_dst=True)
-datetime.timedelta(-1, 77400)
->>> tz.dst(normal, is_dst=True)
-datetime.timedelta(0, 3600)
+>>> print(tz.utcoffset(normal, is_dst=True))
+-1 day, 21:30:00
+>>> print(tz.dst(normal, is_dst=True))
+1:00:00
 >>> tz.tzname(normal, is_dst=True)
 'NDT'
 
->>> tz.utcoffset(ambiguous, is_dst=True)
-datetime.timedelta(-1, 77400)
->>> tz.dst(ambiguous, is_dst=True)
-datetime.timedelta(0, 3600)
+>>> print(tz.utcoffset(ambiguous, is_dst=True))
+-1 day, 21:30:00
+>>> print(tz.dst(ambiguous, is_dst=True))
+1:00:00
 >>> tz.tzname(ambiguous, is_dst=True)
 'NDT'
 
->>> tz.utcoffset(normal, is_dst=False)
-datetime.timedelta(-1, 77400)
+>>> print(tz.utcoffset(normal, is_dst=False))
+-1 day, 21:30:00
 >>> tz.dst(normal, is_dst=False)
 datetime.timedelta(0, 3600)
 >>> tz.tzname(normal, is_dst=False)
 'NDT'
 
->>> tz.utcoffset(ambiguous, is_dst=False)
-datetime.timedelta(-1, 73800)
+>>> print(tz.utcoffset(ambiguous, is_dst=False))
+-1 day, 20:30:00
 >>> tz.dst(ambiguous, is_dst=False)
 datetime.timedelta(0)
 >>> tz.tzname(ambiguous, is_dst=False)
@@ -211,10 +216,10 @@ datetime.timedelta(0)
 If ``is_dst`` is not specified, ambiguous timestamps will raise
 an ``pytz.exceptions.AmbiguousTimeError`` exception.
 
->>> tz.utcoffset(normal)
-datetime.timedelta(-1, 77400)
->>> tz.dst(normal)
-datetime.timedelta(0, 3600)
+>>> print(tz.utcoffset(normal))
+-1 day, 21:30:00
+>>> print(tz.dst(normal))
+1:00:00
 >>> tz.tzname(normal)
 'NDT'
 
@@ -249,18 +254,19 @@ happens:
       and 01:00 happens again (this time 01:00 EST)
 
 In fact, every instant between 01:00 and 02:00 occurs twice. This means
-that if you try and create a time in the 'US/Eastern' timezone using
+that if you try and create a time in the 'US/Eastern' timezone
 the standard datetime syntax, there is no way to specify if you meant
-before of after the end-of-daylight-saving-time transition.
+before of after the end-of-daylight-saving-time transition. Using the
+pytz custom syntax, the best you can do is make an educated guess:
 
->>> loc_dt = datetime(2002, 10, 27, 1, 30, 00, tzinfo=eastern)
+>>> loc_dt = eastern.localize(datetime(2002, 10, 27, 1, 30, 00))
 >>> loc_dt.strftime(fmt)
 '2002-10-27 01:30:00 EST-0500'
 
 As you can see, the system has chosen one for you and there is a 50%
 chance of it being out by one hour. For some applications, this does
 not matter. However, if you are trying to schedule meetings with people
-in different timezones or analyze log files it is not acceptable. 
+in different timezones or analyze log files it is not acceptable.
 
 The best and simplest solution is to stick with using UTC.  The pytz
 package encourages using UTC for internal timezone representation by
@@ -341,30 +347,36 @@ True
 >>> isinstance(pytz.NonExistentTimeError(), pytz.InvalidTimeError)
 True
 
-Although ``localize()`` handles many cases, it is still not possible
-to handle all. In cases where countries change their timezone definitions,
-cases like the end-of-daylight-saving-time occur with no way of resolving
-the ambiguity. For example, in 1915 Warsaw switched from Warsaw time to
-Central European time. So at the stroke of midnight on August 5th 1915
-the clocks were wound back 24 minutes creating an ambiguous time period
-that cannot be specified without referring to the timezone abbreviation
-or the actual UTC offset. In this case midnight happened twice, neither
-time during a daylight saving time period:
+
+A special case is where countries change their timezone definitions
+with no daylight savings time switch. For example, in 1915 Warsaw
+switched from Warsaw time to Central European time with no daylight savings
+transition. So at the stroke of midnight on August 5th 1915 the clocks
+were wound back 24 minutes creating an ambiguous time period that cannot
+be specified without referring to the timezone abbreviation or the
+actual UTC offset. In this case midnight happened twice, neither time
+during a daylight saving time period. pytz handles this transition by
+treating the ambiguous period before the switch as daylight savings
+time, and the ambiguous period after as standard time.
+
 
 >>> warsaw = pytz.timezone('Europe/Warsaw')
->>> loc_dt1 = warsaw.localize(datetime(1915, 8, 4, 23, 59, 59), is_dst=False)
->>> loc_dt1.strftime(fmt)
+>>> amb_dt1 = warsaw.localize(datetime(1915, 8, 4, 23, 59, 59), is_dst=True)
+>>> amb_dt1.strftime(fmt)
 '1915-08-04 23:59:59 WMT+0124'
->>> loc_dt2 = warsaw.localize(datetime(1915, 8, 5, 00, 00, 00), is_dst=False)
->>> loc_dt2.strftime(fmt)
+>>> amb_dt2 = warsaw.localize(datetime(1915, 8, 4, 23, 59, 59), is_dst=False)
+>>> amb_dt2.strftime(fmt)
+'1915-08-04 23:59:59 CET+0100'
+>>> switch_dt = warsaw.localize(datetime(1915, 8, 5, 00, 00, 00), is_dst=False)
+>>> switch_dt.strftime(fmt)
 '1915-08-05 00:00:00 CET+0100'
->>> str(loc_dt2 - loc_dt1)
+>>> str(switch_dt - amb_dt1)
 '0:24:01'
+>>> str(switch_dt - amb_dt2)
+'0:00:01'
 
-The only way of creating a time during the missing 24 minutes is
-converting from another timezone - because neither of the timezones
-involved where in daylight saving mode the API simply provides no way
-to express it:
+The best way of creating a time during an ambiguous time period is
+by converting from another timezone such as UTC:
 
 >>> utc_dt = datetime(1915, 8, 4, 22, 36, tzinfo=pytz.utc)
 >>> utc_dt.astimezone(warsaw).strftime(fmt)
@@ -465,9 +477,9 @@ True
 True
 >>> 'Canada/Eastern' in common_timezones
 True
->>> 'US/Pacific-New' in all_timezones
+>>> 'Australia/Yancowinna' in all_timezones
 True
->>> 'US/Pacific-New' in common_timezones
+>>> 'Australia/Yancowinna' in common_timezones
 False
 
 Both ``common_timezones`` and ``all_timezones`` are alphabetically
@@ -503,6 +515,15 @@ Europe/Zurich
 Europe/Zurich
 
 
+Internationalization - i18n/l10n
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pytz is an interface to the IANA database, which uses ASCII names. The `Unicode  Consortium's Unicode Locales (CLDR) <http://cldr.unicode.org>`_
+project provides translations. Thomas Khyn's
+`l18n <https://pypi.org/project/l18n/>`_ package can be used to access
+these translations from Python.
+
+
 License
 ~~~~~~~
 
@@ -520,12 +541,13 @@ Latest Versions
 
 This package will be updated after releases of the Olson timezone
 database.  The latest version can be downloaded from the `Python Package
-Index <http://pypi.python.org/pypi/pytz/>`_.  The code that is used
+Index <https://pypi.org/project/pytz/>`_.  The code that is used
 to generate this distribution is hosted on launchpad.net and available
-using the `Bazaar version control system <http://bazaar-vcs.org>`_
-using::
+using git::
 
-    bzr branch lp:pytz
+    git clone https://git.launchpad.net/pytz
+
+A mirror on github is also available at https://github.com/stub42/pytz
 
 Announcements of new releases are made on
 `Launchpad <https://launchpad.net/pytz>`_, and the
@@ -536,7 +558,13 @@ hosted there.
 Bugs, Feature Requests & Patches
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Bugs can be reported using `Launchpad <https://bugs.launchpad.net/pytz>`_.
+Bugs can be reported using `Launchpad Bugs <https://bugs.launchpad.net/pytz>`_.
+
+
+Security Issues
+~~~~~~~~~~~~~~~
+
+Reports about security issues can be made via `Tidelift <https://tidelift.com/security>`_.
 
 
 Issues & Limitations
@@ -564,5 +592,7 @@ Contact
 ~~~~~~~
 
 Stuart Bishop <stuart@stuartbishop.net>
+
+
 
 
